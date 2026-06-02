@@ -63,6 +63,7 @@ class Table:
     index_col: str
     index_label: str
     columns: list = field(default_factory=list)
+    scalars: list = field(default_factory=list)  # per-table single-cell inputs
     note: str = ""
 
 
@@ -146,14 +147,22 @@ def extract_production_table(ws) -> Table:
     )
 
 
-def extract_manure_tables(ws) -> list:
+def extract_manure_tables(ws, livestock_opts) -> list:
     """Section L1 baseline tables — up to 6 livestock-category blocks (14 cols each)."""
     tables = []
     r0, r1 = 9, 32
     for i in range(6):
         base = 2 + 14 * i           # B, P, AD, AR, BF, BT ...
+        base_letter = get_column_letter(base)
         index_col_idx = base + 1    # month column (C, Q, ...)
         cat_name = clean(ws.cell(6, base).value) or f"Livestock Category {i + 1}"
+        # per-block scalar inputs: livestock category (row 7) + baseline reporting period (row 9)
+        scalars = [
+            {"cell": f"{base_letter}7", "label": "Livestock Category",
+             "type": "select", "options": livestock_opts, "default": livestock_opts[0]},
+            {"cell": f"{base_letter}9", "label": "Baseline Reporting Period (months)",
+             "type": "select", "options": ["12", "24", "-"], "default": "12"},
+        ]
         cols = []
         for off in range(1, 13):    # within-block columns
             ci = base + off
@@ -177,6 +186,7 @@ def extract_manure_tables(ws) -> list:
             index_col=get_column_letter(index_col_idx),
             index_label="Reporting Month (MM/YYYY)",
             columns=cols,
+            scalars=scalars,
             note="Per-category monthly herd data feeding the baseline anaerobic-"
                  "storage methane calculation.",
         ))
@@ -198,6 +208,14 @@ def build():
         name = clean(ef.cell(r, column_index_from_string("D")).value)
         if name:
             elec_opts.append(name)
+
+    # --- livestock categories from Reference A94:A103 -------------------- #
+    refsheet = wb["Reference"]
+    livestock_opts = []
+    for r in range(94, 104):
+        name = clean(refsheet.cell(r, 1).value)
+        if name and name != "-":
+            livestock_opts.append(name)
 
     # --- setup fields (curated, high-level toggles) --------------------- #
     def default(sheet_vals, coord):
@@ -227,6 +245,8 @@ def build():
               type="number", unit="miles", default=num_default(wb_vals["Biogas-to-RNG"], "AH34"), help="2.35.a"),
         Field(key=("BIOGAS-TO-RNG", "AH40"), label="Pipeline Distance: Upgrading → LNG Plant", group="Project Setup",
               type="number", unit="miles", default=num_default(wb_vals["Biogas-to-RNG"], "AH40"), help="2.35.b"),
+        Field(key=("BIOGAS-TO-RNG", "AH54"), label="Fugitive Methane from Upgrading", group="Project Setup",
+              type="number", unit="fraction 0–1", default=0.02, help="2.37"),
 
         Field(key=("BIOGAS-TO-RNG", "AL24"), label="LNG / L-CNG Facility Name and ID", group="LNG / L-CNG",
               type="text", default=default(wb_vals["Biogas-to-RNG"], "AL24"), help="3.1"),
@@ -241,7 +261,7 @@ def build():
 
     # --- tables --------------------------------------------------------- #
     tables = [extract_production_table(rng)] + extract_manure_tables(
-        wb["Manure-to-Biogas (LOP Inputs)"])
+        wb["Manure-to-Biogas (LOP Inputs)"], livestock_opts)
 
     # --- outputs & breakdown ------------------------------------------- #
     outputs = [

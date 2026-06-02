@@ -1,12 +1,33 @@
-# CA-GREET4 Carbon-Intensity Explorer
+# Carbon-Intensity Explorer
 
-A friendlier, interactive web front-end to CARB's official **CA-GREET4 Tier 1
-Dairy/Swine Manure Biomethane** calculator
-(`t1_biomethane_ad_dairy_swine_manure_simplified_calculator_07012025_2.xlsm`).
+A friendlier, interactive web front-end to CARB's official biomethane
+calculators, organized behind **Market × Feedstock** toggles so more
+jurisdictions and feedstocks can be added without restructuring.
 
-Toggle inputs, fill in monthly data in clean grids, and get live
-**CNG / LNG / L-CNG carbon intensity** results with a contribution breakdown —
-without wrestling the 7-sheet spreadsheet.
+| Market | Feedstock | Status |
+|--------|-----------|--------|
+| California (LCFS / CA-GREET4) | Dairy / Swine Manure | ✅ active |
+| California (LCFS / CA-GREET4) | Landfill Gas | ⏳ awaiting a valid workbook |
+| Canada (Clean Fuel Regulation) | — | ⏳ scaffolded placeholder |
+
+Pick a market + feedstock, edit any value, and get live **CNG / LNG / L-CNG
+carbon intensity** with a contribution breakdown — without wrestling the
+7-sheet spreadsheet.
+
+### Default scenarios
+Each active feedstock loads a **calibrated default scenario** that produces a
+sensible CI immediately (dairy ≈ **−264 gCO₂e/MJ**; landfill will target ≈ +50).
+Every value — setup toggles, livestock category, monthly grids — is editable;
+press **Recalculate** to update. The CARB templates ship blank, so these
+defaults are representative inputs, documented in `models.py`.
+
+> ⚠️ The landfill workbook currently committed to the repo is **corrupted**
+> (truncated ZIP — file entries present but no central directory). Replace
+> `t1_biomethane_NA_landfill_simplified_calculator_*.xlsm` with a clean export
+> to activate that feedstock.
+
+> ⚠️ `% Methane` columns are **fractions** (`0.60` = 60%), matching the
+> spreadsheet's internal math — not `60`.
 
 ## How it works
 
@@ -61,11 +82,21 @@ python app/build_model.py
 
 | File | Purpose |
 |------|---------|
-| `streamlit_app.py` | The interactive UI |
+| `streamlit_app.py` | The interactive UI (market/feedstock toggles, grids, results) |
+| `models.py` | Registry of market × feedstock models + calibrated default scenarios |
 | `engine.py` | Loads & recalculates the `.xlsm` via `formulas` |
 | `build_model.py` | Extracts the input/output schema → `model.pkl` |
-| `model.pkl` | Serialized schema the app reads |
+| `model.pkl` | Serialized schema the app reads (auto-built on first run) |
 | `requirements.txt` | Python dependencies |
+
+## Adding a feedstock / market
+
+1. Add the CARB `.xlsm` to the repo root.
+2. Generalize `build_model.py` (or add a builder) to emit its schema `.pkl`.
+3. Register it in `models.py` with a `default_scenario` and `status="active"`.
+
+The Canadian Clean Fuel Regulation market is already stubbed in `models.py`;
+drop in its model/credit methodology to activate it.
 
 ## Coverage & notes
 

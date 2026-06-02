@@ -25,10 +25,10 @@ APP_DIR = Path(__file__).resolve().parent
 ROOT = APP_DIR.parent
 
 
-def load_model() -> dict:
-    """Load the input/output schema, building it from the workbook if missing."""
-    pkl = APP_DIR / "model.pkl"
-    if not pkl.exists():
+def load_model(schema: str = "model.pkl") -> dict:
+    """Load an input/output schema, building model.pkl from the workbook if missing."""
+    pkl = APP_DIR / schema
+    if not pkl.exists() and schema == "model.pkl":
         import build_model
         build_model.build()
     with open(pkl, "rb") as fh:
