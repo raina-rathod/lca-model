@@ -189,8 +189,11 @@ for gname, fields in groups.items():
                     st.session_state[skey] = st.text_input(
                         label, value=st.session_state.get(skey) or "", key=f"w_{skey}")
                 else:
+                    cur = st.session_state.get(skey)
+                    cur = cur if isinstance(cur, (int, float)) else None
                     st.session_state[skey] = st.number_input(
-                        label, value=float(st.session_state.get(skey) or 0.0), key=f"w_{skey}")
+                        label, value=cur, key=f"w_{skey}",
+                        placeholder="enter a value…")
 
 # ---- Data tables ---------------------------------------------------------- #
 PRIMARY_HINT = ("Raw Biogas", "Biomethane Content", "Injected", "Diesel", "Grid Electricity",
