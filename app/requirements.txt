@@ -1,0 +1,4 @@
+streamlit>=1.40
+formulas>=1.2.10
+openpyxl>=3.1
+pandas>=2.0
