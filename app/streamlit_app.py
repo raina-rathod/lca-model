@@ -10,6 +10,13 @@ spreadsheet via the `formulas` engine, so results match the official model.
 """
 from __future__ import annotations
 
+import os
+import sys
+
+# Ensure this app's directory is importable no matter where Streamlit is launched
+# from (repo root on Streamlit Cloud, app/ locally, AppTest, etc.).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import pickle
 
 import pandas as pd
